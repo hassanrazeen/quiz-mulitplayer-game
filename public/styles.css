@@ -1,0 +1,102 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+#lobby,
+#game {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 300px;
+  text-align: center;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 24px;
+}
+
+input[type="text"] {
+  width: calc(100% - 22px);
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  margin: 10px 0;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: #218838;
+}
+
+#rooms {
+  margin-bottom: 10px;
+}
+
+#scores,
+#question,
+#answers,
+#scoreboard {
+  margin: 10px 0;
+}
+
+#playerTurn {
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+#answers button {
+  display: block;
+  background-color: #007bff;
+  border: none;
+  color: white;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+}
+
+#answers button:hover {
+  background-color: #0056b3;
+}
+
+.fade-out {
+  opacity: 0.5;
+  pointer-events: none; /* Prevent clicking */
+  transition: opacity 0.3s ease;
+}
+
+.fade-in {
+  opacity: 1;
+  pointer-events: auto; /* Allow clicking */
+  transition: opacity 0.3s ease;
+}
+
+
+/* styles.css */
+#timer {
+  font-size: 1.2em;
+  color: red;
+  margin-top: 10px;
+}
