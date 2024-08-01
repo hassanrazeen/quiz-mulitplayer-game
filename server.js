@@ -1,6 +1,8 @@
 const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
+const { sequelize, Room } = require("./db/Room.model");
+const { Sequelize } = require("sequelize");
 
 const app = express();
 const server = http.createServer(app);
@@ -8,8 +10,7 @@ const io = socketIo(server);
 
 app.use(express.static("public"));
 
-let rooms = {};
-
+// all quiz questions
 const questions = [
   {
     question: "What is the capital of France?",
@@ -17,7 +18,7 @@ const questions = [
     correct: 0,
   },
   {
-    question: "What is the largest lake in the world",
+    question: "What is the largest lake in the world?",
     options: ["Caspian Sea", "Baikal", "Lake Superior", "Ontario"],
     correct: 1,
   },
@@ -32,7 +33,7 @@ const questions = [
     correct: 2,
   },
   {
-    question: "Which river is the longest in the world",
+    question: "Which river is the longest in the world?",
     options: ["Amazon", "Mississippi", "Nile", "Yangtze"],
     correct: 2,
   },
@@ -63,74 +64,186 @@ const questions = [
   },
 ];
 
+let room = {};
+
 io.on("connection", (socket) => {
   try {
     console.log("New client connected");
 
-    socket.on("joinLobby", () => {
+    socket.on("joinLobby", async () => {
+      // fetch all the rooms which are have only one player
+      const rooms = await Room.findAll({ where: { player2: null } });
       socket.emit("updateRooms", rooms);
     });
 
-    socket.on("createRoom", (roomName) => {
-      if (!rooms[roomName]) {
-        rooms[roomName] = {
-          players: [{ id: socket.id, name: "Player 1" }],
+    socket.on("createRoom", async ({ roomName, player1 }) => {
+      const isRoomPresent = await Room.findOne({ where: { name: roomName } });
+      if (!isRoomPresent) {
+        const result = await Room.create({
+          name: roomName,
+          player1: player1,
+          player1_socket_id: socket.id,
+        });
+        room[roomName] = {
+          players: { player1: result.player1, player2: result.player2 },
           scores: [0, 0],
           questions: questions,
           currentQuestion: 0,
           turn: 0,
         };
+        const rooms = await Room.findAll({ where: { player2: null } });
         socket.join(roomName);
         socket.emit("roomJoined", roomName);
         io.emit("updateRooms", rooms);
+      } else {
+        socket.emit("error", `Room ${roomName} already exists`);
       }
     });
 
-    socket.on("joinRoom", ({ roomName }) => {
-      const room = rooms[roomName];
-      if (room && room.players.length < 2) {
-        room.players.push({ id: socket.id, name: "Player 2" });
-        socket.join(roomName);
-        socket.emit("roomJoined", roomName);
-        io.emit("updateRooms", rooms);
-        if (room.players.length === 2) {
-          io.to(roomName).emit("startGame", room);
+    socket.on("joinRoom", async ({ roomName, player2 }) => {
+      const result = await Room.findOne({ where: { name: roomName } });
+      if (!result) {
+        io.emit("reset", "Room is no longer available");
+      } else {
+        if (result.player2 == null) {
+          await Room.update(
+            { player2, player2_socket_id: socket.id },
+            { where: { name: roomName } }
+          );
+          if (!room[roomName]) {
+            room[roomName] = {
+              players: { player1: result.player1, player2: player2 },
+              scores: [0, 0],
+              questions: questions,
+              currentQuestion: 0,
+              turn: 0,
+            };
+          } else {
+            room[roomName].players.player2 = player2;
+          }
+          socket.join(roomName);
+          socket.emit("roomJoined", roomName);
+          const rooms = await Room.findAll({ where: { player2: null } });
+          io.emit("updateRooms", rooms);
+          const turn =
+            room[roomName].turn == 0 ? result.player1_socket_id : socket.id;
+          io.to(roomName).emit("startGame", {
+            room: room[roomName],
+            turn,
+            roomName,
+            questionLeft: questions.length - room[roomName].currentQuestion,
+          });
         }
       }
     });
 
-    socket.on("submitAnswer", ({ roomName, answerIndex }) => {
-      const room = rooms[roomName];
-      if (!room) return;
+    socket.on("submitAnswer", async ({ roomName, answerIndex, turn }) => {
+      let winnerScore = 0;
+      let winner = "";
 
-      const currentQuestion = room.questions[room.currentQuestion];
-      if (answerIndex === currentQuestion.correct) {
-        room.scores[room.turn] += 10;
-      }
-
-      room.turn = (room.turn + 1) % 2;
-
-      // show the question until all the question have been answered
-      if (room.currentQuestion < room.questions.length - 1) {
-        room.currentQuestion++;
-        io.to(roomName).emit("nextQuestion", {
-          question: room.questions[room.currentQuestion].question,
-          options: room.questions[room.currentQuestion].options,
-          turn: room.turn,
-        });
+      const result = await Room.findOne({ where: { name: roomName } });
+      if (!result) {
+        socket.emit("reset", "player disconnected");
       } else {
-        io.to(roomName).emit("endGame", room.scores);
-        delete rooms[roomName];
-        io.emit("updateRooms", rooms);
+        const currentQuestion =
+          room[roomName].questions[room[roomName].currentQuestion];
+        if (answerIndex === currentQuestion.correct) {
+          room[roomName].scores[room[roomName].turn] += 10;
+        }
+
+        room[roomName].turn = (room[roomName].turn + 1) % 2;
+
+        const nextTurn =
+          result.player1_socket_id == turn
+            ? result.player2_socket_id
+            : result.player1_socket_id;
+
+        if (
+          room[roomName].currentQuestion <
+          room[roomName].questions.length - 1
+        ) {
+          room[roomName].currentQuestion++;
+          io.to(roomName).emit("nextQuestion", {
+            question:
+              room[roomName].questions[room[roomName].currentQuestion].question,
+            options:
+              room[roomName].questions[room[roomName].currentQuestion].options,
+            turn: nextTurn,
+            roomName: roomName,
+            questionLeft: questions.length - room[roomName].currentQuestion,
+          });
+        } else {
+          if (room[roomName].scores[0] > room[roomName].scores[1]) {
+            winnerScore = room[roomName].scores[0];
+            winner = result.player1;
+          } else if (room[roomName].scores[1] > room[roomName].scores[0]) {
+            winnerScore = room[roomName].scores[1];
+            winner = result.player2;
+          } else {
+            winner = "It's a tie!";
+          }
+
+          await Room.update(
+            { winnerScore, winner },
+            { where: { name: roomName } }
+          );
+          io.to(roomName).emit("endGame", {
+            scores: room[roomName].scores,
+            player1: result.player1,
+            player2: result.player2,
+            winner: winner,
+          });
+          delete room[roomName];
+          const rooms = await Room.findAll({ where: { player2: null } });
+          io.emit("updateRooms", rooms);
+        }
       }
     });
 
-    socket.on("disconnect", () => {
-      console.log("Client disconnected");
+    socket.on("leaveRoom", async ({ roomName }) => {
+      const result = await Room.findOne({ where: { name: roomName } });
+      if (result) {
+        if (
+          result.player1_socket_id == socket.id ||
+          result.player2_socket_id == socket.id
+        ) {
+          await Room.destroy({ where: { name: roomName } });
+          delete room[roomName];
+          io.to(roomName).emit("roomDeleted");
+          const rooms = await Room.findAll({ where: { player2: null } });
+          io.emit("updateRooms", rooms);
+        }
+      }
+      socket.leave(roomName);
+    });
+
+    socket.on("disconnect", async () => {
+      const playerRoom = await Room.findOne(
+        {
+          where: {
+            [Sequelize.Op.or]: [
+              { player1_socket_id: socket.id },
+              { player2_socket_id: socket.id },
+            ],
+          },
+        },
+        { raw: true }
+      );
+      if (playerRoom) {
+        await Room.destroy({ where: { name: playerRoom.name } });
+        delete room[playerRoom.name];
+        io.to(playerRoom.name).emit("roomDeleted");
+        const rooms = await Room.findAll({ where: { player2: null } });
+        io.emit("updateRooms", rooms);
+        console.log("Client disconnected");
+      }
     });
   } catch (error) {
-    console.log(error);
+    console.log("Client disconnected");
   }
 });
 
-server.listen(4000, () => console.log("Server running on port 4000"));
+server.listen(4000, () => {
+  sequelize.sync({ alter: true });
+  console.log("Server running on port 4000");
+});
