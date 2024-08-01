@@ -59,6 +59,19 @@ button:hover {
   margin: 10px 0;
 }
 
+.room-button:hover {
+  background-color: #0057b3bf;
+}
+
+.room-button {
+  display: block;
+  margin: 10px auto;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #0056b3;
+}
+
 #playerTurn {
   font-weight: bold;
   margin: 10px 0;
@@ -92,7 +105,6 @@ button:hover {
   pointer-events: auto; /* Allow clicking */
   transition: opacity 0.3s ease;
 }
-
 
 /* styles.css */
 #timer {
