@@ -181,6 +181,7 @@ io.on("connection", (socket) => {
             winner = result.player2;
           } else {
             winner = "It's a tie!";
+            winnerScore = room[roomName].scores[1];
           }
 
           await Room.update(
