@@ -10,7 +10,7 @@ const io = socketIo(server);
 
 app.use(express.static("public"));
 
-// all quiz questions
+// Sample quiz questions
 const questions = [
   {
     question: "What is the capital of France?",
@@ -66,16 +66,19 @@ const questions = [
 
 let room = {};
 
+// Handle new socket connections
 io.on("connection", (socket) => {
   try {
     console.log("New client connected");
 
+    // Handle player joining the lobby
     socket.on("joinLobby", async () => {
       // fetch all the rooms which are have only one player
       const rooms = await Room.findAll({ where: { player2: null } });
       socket.emit("updateRooms", rooms);
     });
 
+    // Handle creating a new room
     socket.on("createRoom", async ({ roomName, player1 }) => {
       const isRoomPresent = await Room.findOne({ where: { name: roomName } });
       if (!isRoomPresent) {
@@ -96,10 +99,12 @@ io.on("connection", (socket) => {
         socket.emit("roomJoined", roomName);
         io.emit("updateRooms", rooms);
       } else {
+        console.log("object");
         socket.emit("error", `Room ${roomName} already exists`);
       }
     });
 
+    // Handle joining an existing room
     socket.on("joinRoom", async ({ roomName, player2 }) => {
       const result = await Room.findOne({ where: { name: roomName } });
       if (!result) {
@@ -137,6 +142,7 @@ io.on("connection", (socket) => {
       }
     });
 
+    // Handle submitting answers
     socket.on("submitAnswer", async ({ roomName, answerIndex, turn }) => {
       let winnerScore = 0;
       let winner = "";
@@ -201,6 +207,7 @@ io.on("connection", (socket) => {
       }
     });
 
+    // Handle leaving a room
     socket.on("leaveRoom", async ({ roomName }) => {
       const result = await Room.findOne({ where: { name: roomName } });
       if (result) {
@@ -218,6 +225,7 @@ io.on("connection", (socket) => {
       socket.leave(roomName);
     });
 
+    // Handle socket disconnection
     socket.on("disconnect", async () => {
       const playerRoom = await Room.findOne(
         {

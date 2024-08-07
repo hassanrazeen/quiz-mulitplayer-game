@@ -2,14 +2,17 @@ const socket = io();
 
 let timerInterval;
 
+// Handle socket connection
 socket.on("connect", () => {
   clearInterval(timerInterval);
   socket.emit("joinLobby");
 });
 
+// Update the list of available rooms
 socket.on("updateRooms", (rooms) => {
   const roomsDiv = document.getElementById("rooms");
   roomsDiv.innerHTML = "";
+  document.getElementById("rooms").style.display = "block";
   rooms.forEach((room) => {
     const roomElement = document.createElement("button");
     roomElement.className = "room-button";
@@ -19,12 +22,14 @@ socket.on("updateRooms", (rooms) => {
   });
 });
 
+// Handle joining a room
 socket.on("roomJoined", (roomName) => {
   document.getElementById("lobby").style.display = "none";
   document.getElementById("game").style.display = "block";
   document.getElementById("roomTitle").innerText = `Room: ${roomName}`;
 });
 
+// Start the game
 socket.on("startGame", ({ room, turn, roomName, questionLeft }) => {
   displayPlayerNames(room);
   displayQuestion(
@@ -35,6 +40,7 @@ socket.on("startGame", ({ room, turn, roomName, questionLeft }) => {
   );
 });
 
+// Display the next question
 socket.on(
   "nextQuestion",
   ({ question, options, turn, roomName, questionLeft }) => {
@@ -42,6 +48,7 @@ socket.on(
   }
 );
 
+// Handle game end
 socket.on("endGame", ({ scores, player1, player2, winner }) => {
   clearInterval(timerInterval);
 
@@ -63,20 +70,24 @@ socket.on("endGame", ({ scores, player1, player2, winner }) => {
   }, 4000);
 });
 
+// Handle errors
 socket.on("error", (message) => {
   alert(message);
 });
 
+// Reset the game
 socket.on("reset", (message) => {
   alert(message);
   resetGame();
 });
 
+// Display player names
 function displayPlayerNames(room) {
   const playerNamesDiv = document.getElementById("playerNames");
   playerNamesDiv.innerHTML = `${room.players.player1} vs ${room.players.player2}`;
 }
 
+// Create a new room
 async function createRoom() {
   let player1;
   const roomName = document.getElementById("roomName").value;
@@ -87,6 +98,7 @@ async function createRoom() {
   socket.emit("createRoom", { roomName, player1 });
 }
 
+// Join an existing room
 function joinRoom(roomName) {
   let player2;
   player2 = prompt("Please enter player 2 name:");
@@ -96,6 +108,7 @@ function joinRoom(roomName) {
   socket.emit("joinRoom", { roomName, player2 });
 }
 
+// Display a question
 function displayQuestion(questionData, turn, roomName, questionLeft) {
   document.getElementById("timer").style.display = "block";
   document.getElementById(
@@ -124,6 +137,7 @@ function displayQuestion(questionData, turn, roomName, questionLeft) {
   startTimer(roomName, turn);
 }
 
+// Start the question timer
 function startTimer(roomName, turn) {
   const timerDiv = document.getElementById("timer");
   let timeLeft = 10;
@@ -145,6 +159,7 @@ function startTimer(roomName, turn) {
   }, 1000);
 }
 
+// Submit an answer
 function submitAnswer(roomName, answerIndex, turn) {
   const buttons = document
     .getElementById("answers")
@@ -158,12 +173,14 @@ function submitAnswer(roomName, answerIndex, turn) {
   socket.emit("submitAnswer", { roomName, answerIndex, turn });
 }
 
+// Leave a room
 function leaveRoom() {
   const roomName = document.getElementById("roomTitle").innerText.split(" ")[1];
   socket.emit("leaveRoom", { roomName });
   resetGame();
 }
 
+// Reset the game
 function resetGame() {
   currentRoom = "";
   document.getElementById("game").style.display = "none";
@@ -178,3 +195,4 @@ function resetGame() {
   // document.getElementById("timer").style.display = "block";
   clearInterval(timerInterval);
 }
+

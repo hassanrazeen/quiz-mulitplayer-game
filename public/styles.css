@@ -1,6 +1,6 @@
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f9;
+  font-family: "Comic Sans MS", sans-serif;
+  background-color: #9F7FFF;
   color: #333;
   margin: 0;
   padding: 0;
@@ -12,11 +12,12 @@ body {
 
 #lobby,
 #game {
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  width: 300px;
+  grid-template-columns: auto;
+  background: white;
+  border: 2px solid #000000;
+  padding: 40px;
+  width: 320px;
+  box-shadow: 10px 10px 0 #000000af;
   text-align: center;
 }
 
@@ -26,26 +27,26 @@ h1 {
 }
 
 input[type="text"] {
-  width: calc(100% - 22px);
+  width: 70%;
   padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  border: 2px solid #000000dc;
+  box-shadow: 3px 3px 0 #000000af;
+  font-size: 14px;
 }
 
 button {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  margin: 10px 0;
-  border-radius: 5px;
+  margin-top: 20px;
+  background-color: #ffcc00;
+  border: 2px solid #000000;
+  padding: 10px;
+  width: 50%;
   cursor: pointer;
+  box-shadow: 3px 3px 0 #000000af;
   font-size: 16px;
 }
 
 button:hover {
-  background-color: #218838;
+  background-color: #ffeb3b;
 }
 
 #rooms {
@@ -112,3 +113,5 @@ button:hover {
   color: red;
   margin-top: 10px;
 }
+
+

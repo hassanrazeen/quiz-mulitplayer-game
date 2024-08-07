@@ -7,11 +7,11 @@ const sequelize = new Sequelize(DB_NAME, DB_USER_NAME, DB_PASSWORD, {
   host: DB_HOST,
   dialect: "postgres",
   // ssl: true,
-  dialectOptions: {
-    ssl: {
-      require: true,
-    },
-  },
+  // dialectOptions: {
+  //   ssl: {
+  //     require: true,
+  //   },
+  // },
 });
 
 const Room = sequelize.define(
